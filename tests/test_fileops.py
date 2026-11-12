@@ -198,3 +198,11 @@ def test_is_trash_path():
     assert is_trash_path("/Users/me/.Trash/a.mp4")
     assert is_trash_path("/Volumes/Media/.Trashes/501/a.mp4")
     assert not is_trash_path("/Volumes/Media/Sorted/Beach/a.mp4")
+
+
+def test_app_icon_draws(qapp):
+    from fileorganizer.icon import draw_icon
+
+    image = draw_icon(64)
+    assert image.width() == 64 and not image.isNull()
+    assert image.pixelColor(32, 32).alpha() == 255 and image.pixelColor(0, 0).alpha() == 0

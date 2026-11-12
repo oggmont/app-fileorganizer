@@ -23,6 +23,29 @@ The full specification is in [REQUIREMENTS.md](REQUIREMENTS.md).
 
 ## Run
 
+### From Finder (double-click)
+
+Build the app once from Terminal:
+
+```sh
+./make_app.sh
+```
+
+This creates **`Video File Organizer.app`** in the project folder. Double-click it in Finder,
+or drag it to the Dock or to Applications. It shows its own name and icon in the Dock and
+menu bar.
+
+- The app runs the code in this folder, so code changes apply the next time you open it.
+  Run `./make_app.sh` again only if you move or rename the project folder.
+- The first time you choose a folder in Documents, Desktop, Downloads or on an external
+  drive, macOS asks whether "Video File Organizer" may access it. Click **Allow**.
+- With no Terminal, the app's output and errors go to
+  `~/Library/Logs/Video File Organizer.log`.
+- The `.app` contains this computer's project path, so it's in `.gitignore`. Build it on
+  each computer.
+
+### From Terminal
+
 ```sh
 ./run.sh
 ```
@@ -105,6 +128,9 @@ fileorganizer/
   main_window.py    app state, keyboard shortcuts, move and rename flow
   fileops.py        listing, moving, renaming, Trash checks (no Qt; easy to test)
   trash.py          moves a file to the macOS Trash (QFile.moveToTrash)
+  icon.py           the app icon, drawn in code
+scripts/            setup_venv.sh, launcher.sh and make_icon.py, used by run.sh and make_app.sh
+make_app.sh         builds "Video File Organizer.app" for double-clicking in Finder
   movelog.py        moves_log.txt
   theme.py          dark theme
   widgets/          player panel, folder panel, log panel, status line
@@ -117,6 +143,8 @@ ui-mockup.png       the mockup
 
 - **`No matching distribution found for PySide6`**: the venv was made with Python 3.15.
   Delete `.venv` and run `./run.sh` again; it uses `python3.14`.
+- **The app doesn't open from Finder**: look at `~/Library/Logs/Video File Organizer.log`.
+  If you moved the project folder, run `./make_app.sh` again.
 - **A video won't play**: the status bar shows the error. Press → or Skip to go on.
   Qt's FFmpeg backend plays nearly everything. If a specific file still fails, check it
   with `ffprobe <file>`.

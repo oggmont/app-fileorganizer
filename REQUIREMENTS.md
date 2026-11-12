@@ -168,6 +168,7 @@ pick a folder, then **Enter, Enter** to move.
 | N-3 | A large folder (1,000+ files) is listed in under 2 seconds. Listing reads file sizes only, never file contents. |
 | N-4 | The app remembers the last source and destination folders between launches. |
 | N-5 | No file is ever deleted permanently: Delete moves videos to the macOS Trash, and Undo can bring them back. Besides moving, trashing and renaming videos, the only thing the app writes to disk is `moves_log.txt` (plus its saved settings, N-4). |
+| N-6 | The app can be opened with a double-click in Finder, from `Video File Organizer.app` (built by `make_app.sh`). In the Dock and menu bar it shows its own name and icon, not "Python". |
 
 ## 10. Recommended technology
 

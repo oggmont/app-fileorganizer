@@ -24,12 +24,16 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
+    from PySide6.QtGui import QIcon, QPixmap
+
+    from .icon import draw_icon
     from .main_window import MainWindow
     from .theme import apply_theme
 
     app = QApplication(argv if argv is not None else sys.argv)
     app.setOrganizationName("app-fileorganizer")
     app.setApplicationName("Video File Organizer")
+    app.setWindowIcon(QIcon(QPixmap.fromImage(draw_icon(512))))  # Dock icon, also when run from Terminal
     apply_theme(app)
 
     window = MainWindow()

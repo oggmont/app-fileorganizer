@@ -10,5 +10,11 @@ __pycache__/
 # App data: the move log holds full paths of your files
 moves_log.txt
 
+# Built by make_app.sh; it contains this machine's project path
+Video File Organizer.app/
+
 # Private notes: the prompts used to build this project
 [Pp]rompt.md
+
+# Claude Code project notes (kept local)
+CLAUDE.md
