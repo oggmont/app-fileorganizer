@@ -184,7 +184,8 @@ class FolderPanel(QWidget):
 
         hint_items = [
             (["←", "→"], "video"), (["↑", "↓"], "folder"), (["Enter"], "select"),
-            (["Enter"], "again:&nbsp;move"), (["Esc"], "clear"), (["⌘Z"], "undo"), (["⌘⌫"], "delete"),
+            (["Enter"], "again:&nbsp;move"), (["⌘↵"], "open&nbsp;folder"), (["⌘↑"], "parent"),
+            (["Esc"], "clear"), (["⌘Z"], "undo"), (["⌘⌫"], "delete"),
         ]
         # Inside an item everything is joined with &nbsp;, so lines only wrap between items.
         hints = QLabel(" &nbsp; ".join("".join(_key(k) for k in keys) + label for keys, label in hint_items))
@@ -206,9 +207,10 @@ class FolderPanel(QWidget):
     def set_root(self, path: Path | None) -> None:
         self._path_label.set_full_text(str(path) if path else "No folder chosen")
 
-    def set_folders(self, names: list[str], message_if_empty: str = "") -> None:
-        """Show `names`, keeping the cursor on the same folder when it's still there (K-5)."""
-        previous = self.cursor_name()
+    def set_folders(self, names: list[str], message_if_empty: str = "", cursor_on: str | None = None) -> None:
+        """Show `names`. The cursor goes to `cursor_on`, or stays on the same folder when it's
+        still there, or starts at the top (K-5)."""
+        previous = cursor_on if cursor_on is not None else self.cursor_name()
         self.list.armed_row = -1
         self.list.set_names(names)
         if names:

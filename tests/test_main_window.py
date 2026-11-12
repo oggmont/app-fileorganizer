@@ -516,3 +516,38 @@ def test_cmd_z_and_cmd_delete_keys(setup, tmp_path):
     # K-9: while renaming, ⌘Z and ⌘⌫ belong to the text field.
     window.player_panel.rename_change_button.click()
     assert not any(s.isEnabled() for s in window._shortcuts)
+
+
+# -- browsing destination folders (K-12, K-13) -------------------------------------------------
+def test_cmd_return_opens_folder_and_cmd_up_goes_back(setup):
+    window, source, dest, _ = setup
+    (dest / "Family" / "Kids").mkdir()
+    (dest / "Family" / "Parents").mkdir()
+    window.show()
+    window.activateWindow()
+    if not QTest.qWaitForWindowActive(window, 3000):
+        pytest.skip("offscreen platform couldn't activate the window")
+    cmd = Qt.KeyboardModifier.ControlModifier  # Qt's Ctrl is ⌘ on macOS
+
+    QTest.keyClick(window, Qt.Key.Key_Down)
+    QTest.keyClick(window, Qt.Key.Key_Down)
+    QTest.keyClick(window, Qt.Key.Key_Return)  # select Family...
+    assert window.folder_panel.armed_name() == "Family"
+    QTest.keyClick(window, Qt.Key.Key_Return, cmd)  # ...but ⌘↵ opens it instead
+    assert window.dest == dest / "Family"
+    assert window.folder_panel.names() == ["Kids", "Parents"]
+    assert window.folder_panel.cursor_name() == "Kids"
+    assert window.folder_panel.armed_name() is None  # M-5
+    assert not any((dest / "Family").glob("*.*"))  # nothing moved
+
+    QTest.keyClick(window, Qt.Key.Key_Up, cmd)
+    assert window.dest == dest
+    assert window.folder_panel.cursor_name() == "Family"  # back on the folder we came from
+    assert window.settings.value("dest") == str(dest)
+
+
+def test_parent_of_filesystem_root(setup):
+    window, *_ = setup
+    window.set_dest(Path("/"))
+    window.open_parent_folder()
+    assert window.dest == Path("/") and window.status_line.text() == "This is the top folder."

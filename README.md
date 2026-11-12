@@ -79,6 +79,8 @@ python3.14 -m venv .venv
 | **↓** / **↑** | Move the folder cursor (yellow outline) |
 | **Enter** | First press selects the folder, second press moves the video |
 | **Esc** | Cancel a pending delete, clear the folder selection, or cancel a rename |
+| **⌘↵** | Open the folder under the cursor (list its subfolders) |
+| **⌘↑** | Go to the parent folder |
 | **⌘Z** | Undo the last move or delete |
 | **⌘⌫** | Delete: press once to ask, again to move the video to the Trash |
 

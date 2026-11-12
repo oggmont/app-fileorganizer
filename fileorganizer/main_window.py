@@ -171,6 +171,10 @@ class MainWindow(QMainWindow):
         # On macOS, Qt's "Ctrl" is the ⌘ key: ⌘Z and ⌘⌫ (⌘ + forward delete also works).
         self._shortcut(["Ctrl+Z"], self.undo)
         self._shortcut(["Ctrl+Backspace", "Ctrl+Del"], self.request_delete)
+        # K-12, K-13: browse the destination folders: ⌘↵ opens the folder under the cursor,
+        # ⌘↑ goes to the parent folder.
+        self._shortcut(["Ctrl+Return", "Ctrl+Enter"], self.open_cursor_folder)
+        self._shortcut(["Ctrl+Up"], self.open_parent_folder)
 
     def _shortcut(self, keys: list[str], slot, auto_repeat: bool = False) -> None:
         for key in keys:
@@ -263,20 +267,20 @@ class MainWindow(QMainWindow):
         else:
             self.status_line.show_idle()
 
-    def set_dest(self, path: Path, save: bool = True) -> None:
+    def set_dest(self, path: Path, save: bool = True, cursor_on: str | None = None) -> None:
         self.player_panel.cancel_rename()  # R-9
         self._cancel_delete()
         self.folder_panel.clear_armed()  # M-5
         self.dest = path
         if save:
             self.settings.setValue("dest", str(path))
-        error = self._refresh_folders()
+        error = self._refresh_folders(cursor_on)
         if error:
             self.status_line.show_message(error, "error")
         else:
             self.status_line.show_idle()
 
-    def _refresh_folders(self) -> str | None:
+    def _refresh_folders(self, cursor_on: str | None = None) -> str | None:
         self.folder_panel.set_root(self.dest)
         if self.dest is None:
             self.folder_panel.set_folders([], "Choose a destination folder with the Change button above.")
@@ -286,8 +290,30 @@ class MainWindow(QMainWindow):
         except OSError as e:
             self.folder_panel.set_folders([], "This folder can't be read.")
             return f"✗ Can't read {self.dest}: {e.strerror or e}"
-        self.folder_panel.set_folders(names, "There are no folders inside this folder.")
+        self.folder_panel.set_folders(
+            names, "There are no folders inside this folder. ⌘↑ goes back to the parent folder.", cursor_on
+        )
         return None
+
+    def open_cursor_folder(self) -> None:
+        """⌘↵: the folder under the cursor becomes the destination folder (K-12)."""
+        if self.busy or self.dest is None:
+            return
+        name = self.folder_panel.cursor_name()
+        if name is None:
+            return
+        self.set_dest(self.dest / name, cursor_on="")  # start at the top of the new list
+
+    def open_parent_folder(self) -> None:
+        """⌘↑: the parent folder becomes the destination folder, with the cursor on the
+        folder we came from (K-13)."""
+        if self.busy or self.dest is None:
+            return
+        parent = self.dest.parent
+        if parent == self.dest:
+            self.status_line.show_message("This is the top folder.", "muted", MESSAGE_MS)
+            return
+        self.set_dest(parent, cursor_on=self.dest.name)
 
     def _restore_settings(self) -> None:
         splitter_state = self.settings.value("splitter")

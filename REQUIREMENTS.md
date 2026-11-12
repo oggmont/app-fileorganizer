@@ -44,6 +44,7 @@ left, click a destination folder on the right, and the video is moved there.
 | F-4 | Hidden folders (names starting with `.`) are not shown. |
 | F-5 | If the source folder is one of the listed folders, it is not shown as a destination. |
 | F-6 | The list shows two different states. The **keyboard cursor** (moved with ↑/↓) is an outline around the row. The **selected** folder (after a first click or first Enter) is a filled highlight. |
+| F-7 | Besides the **Change** button, the folder list can be browsed from the keyboard: **⌘↵** opens a folder, **⌘↑** goes to the parent (K-12, K-13). |
 
 ## 4. Move flow
 
@@ -142,6 +143,8 @@ pick a folder, then **Enter, Enter** to move.
 | **Enter** (1st) | Select the folder under the cursor. Same as a first click. |
 | **Enter** (2nd) | Move the video into the selected folder. Same as a second click. Once a folder is selected, every later Enter moves the current video there. |
 | **Esc** | Cancel a pending delete; otherwise clear the folder selection, or cancel a rename in progress. |
+| **⌘↵** | Open the folder under the cursor: its subfolders are listed and it becomes the destination folder (K-12). |
+| **⌘↑** | Go to the parent of the destination folder (K-13). |
 | **⌘Z** | Undo the last move or delete (U-2). |
 | **⌘⌫** | Delete: the first press asks, the second moves the video to the Trash (D-2). |
 
@@ -158,6 +161,9 @@ pick a folder, then **Enter, Enter** to move.
 | K-9 | While the rename field is being edited, arrows, Enter, Esc, ⌘Z and ⌘⌫ belong to the text field (Enter = OK, Esc = cancel, ⌘Z undoes typing, ⌘⌫ deletes text). They don't control videos, folders or files. |
 | K-10 | Keys pressed while a move, undo or delete is in progress are ignored (as in M-14). |
 | K-11 | Holding down a key repeats only **↑ / ↓**. Holding **Enter** doesn't move a stream of videos, and holding **← / →** doesn't skip through dozens of videos. |
+| K-12 | **⌘↵** (⌘ + Return) opens the folder under the cursor. Its subfolders replace the list, and it becomes the destination folder: shown in the header and remembered (N-4). The cursor starts at the top. It doesn't select or move anything. |
+| K-13 | **⌘↑** goes to the parent of the destination folder, with the cursor on the folder you came from. At the top of the disk it does nothing and the status bar says *"This is the top folder."* |
+| K-14 | Like **Change** (M-5), ⌘↵ and ⌘↑ clear the folder selection and cancel a pending delete or rename. |
 
 ## 9. Non-functional
 
