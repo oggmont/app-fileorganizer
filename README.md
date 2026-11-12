@@ -81,8 +81,14 @@ python3.14 -m venv .venv
 | **Esc** | Cancel a pending delete, clear the folder selection, or cancel a rename |
 | **⌘↵** | Open the folder under the cursor (list its subfolders) |
 | **⌘↑** | Go to the parent folder |
+| **⌘⇧N** | New folder in the list on the right |
 | **⌘Z** | Undo the last move or delete |
 | **⌘⌫** | Delete: press once to ask, again to move the video to the Trash |
+
+**New folder:** the **New folder** button at the top of the right panel (or **⌘⇧N**) opens a
+name row: type the name, then Enter or **Create**. Esc cancels. The folder is created next to
+the folders in the list, and the cursor moves onto it, so Enter, Enter sends the video there.
+For now folders can only be created and named, not renamed or deleted.
 
 **Undo:** the **Undo** button (top bar) or **⌘Z** brings back the most recent move or delete.
 The video returns to the source folder with its original name and plays again. Press it

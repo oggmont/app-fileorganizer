@@ -551,3 +551,78 @@ def test_parent_of_filesystem_root(setup):
     window.set_dest(Path("/"))
     window.open_parent_folder()
     assert window.dest == Path("/") and window.status_line.text() == "This is the top folder."
+
+
+# -- new folder (F-8..F-14) ------------------------------------------------------------------
+def test_new_folder_button_creates_and_puts_cursor_on_it(setup):
+    window, source, dest, _ = setup
+    panel = window.folder_panel
+    click_folder(window, "Beach")
+    assert panel.new_folder_button.isEnabled()
+
+    panel.new_folder_button.click()
+    assert panel.creating
+    assert not any(s.isEnabled() for s in window._shortcuts)  # K-9: keys go to the field
+
+    panel.new_folder_field.setText("beach")  # exists (case-insensitive on macOS drives)
+    panel.create_button.click()
+    assert window.status_line.kind() == "error" and panel.creating
+
+    panel.new_folder_field.setText("Concerts")
+    panel.new_folder_field.returnPressed.emit()  # Enter
+    assert (dest / "Concerts").is_dir()
+    assert not panel.creating
+    assert panel.names() == ["Animals", "Beach", "Concerts", "Family"]
+    assert panel.cursor_name() == "Concerts"
+    assert panel.armed_name() is None
+    assert window.status_line.text() == "✓ Created folder “Concerts”"
+    assert all(s.isEnabled() for s in window._shortcuts)
+    assert expected_order(source)  # no video moved
+    assert not any((dest / "Beach").iterdir())
+
+
+def test_new_folder_cancel_paths(setup):
+    window, source, dest, _ = setup
+    panel = window.folder_panel
+    before = sorted(p.name for p in dest.iterdir())
+
+    window.start_new_folder()
+    panel.new_folder_field.setText("Half typed")
+    QTest.keyClick(panel.new_folder_field, Qt.Key.Key_Escape)  # Esc in the field
+    assert not panel.creating
+
+    window.start_new_folder()
+    click_folder(window, "Beach")  # a folder click only cancels
+    assert not panel.creating and panel.armed_name() is None
+    assert window.status_line.text() == "New folder cancelled."
+
+    window.start_new_folder()
+    window.player_panel.rename_change_button.click()  # starting a rename cancels it
+    assert not panel.creating and window.player_panel.editing
+    window.player_panel.cancel_rename()
+
+    window.start_new_folder()
+    window.set_dest(dest)  # changing location cancels it
+    assert not panel.creating
+    assert sorted(p.name for p in dest.iterdir()) == before
+
+
+def test_cmd_shift_n_opens_new_folder_row(setup):
+    window, *_ = setup
+    window.show()
+    window.activateWindow()
+    if not QTest.qWaitForWindowActive(window, 3000):
+        pytest.skip("offscreen platform couldn't activate the window")
+    QTest.keyClick(window, Qt.Key.Key_N, Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier)
+    assert window.folder_panel.creating
+
+
+def test_new_folder_disabled_without_destination(qapp, tmp_path):
+    from fileorganizer.main_window import MainWindow
+
+    window = MainWindow(settings=QSettings(str(tmp_path / "s.ini"), QSettings.Format.IniFormat),
+                        log_path=tmp_path / "log.txt")
+    assert not window.folder_panel.new_folder_button.isEnabled()
+    window.start_new_folder()
+    assert not window.folder_panel.creating
+    window.deleteLater()

@@ -28,6 +28,7 @@ QMainWindow {{ background: #1e1e1e; }}
 #leftPanel {{ background: #232323; }}
 #rightPanel {{ background: #262626; }}
 #topBar, #renameRow, #folderHeader {{ border-bottom: 1px solid #333333; }}
+#newFolderRow {{ background: #2a2a2a; border-bottom: 1px solid #333333; }}
 #mutedLabel {{ color: {MUTED}; font-size: 12px; }}
 #videoName {{ color: #ffffff; font-weight: 600; font-size: 12px; }}
 #videoDetails {{ color: #bbbbbb; font-size: 12px; }}

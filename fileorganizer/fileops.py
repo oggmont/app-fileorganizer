@@ -29,6 +29,10 @@ class RenameError(Exception):
     """The new name was rejected or the rename failed. The message is shown to the user."""
 
 
+class FolderError(Exception):
+    """The new folder's name was rejected or the folder couldn't be created."""
+
+
 class TrashError(Exception):
     """Moving to the Trash failed. The file is left where it was."""
 
@@ -180,13 +184,7 @@ def rename_video(source: Path, new_stem: str) -> Path:
 
     Returns the new path. Raises RenameError if the name is rejected or the rename fails.
     """
-    stem = new_stem.strip()
-    if not stem:
-        raise RenameError("The name can't be empty.")
-    if any(ch in stem for ch in FORBIDDEN_NAME_CHARS):
-        raise RenameError("The name can't contain / or :")
-    if stem.startswith("."):
-        raise RenameError("The name can't start with a dot (the file would be hidden).")
+    stem = _clean_name(new_stem, RenameError, "file")
     new_name = stem + source.suffix
     if new_name == source.name:
         raise RenameError("The name is unchanged.")
@@ -200,6 +198,37 @@ def rename_video(source: Path, new_stem: str) -> Path:
     except OSError as e:
         raise RenameError(f"Couldn't rename {source.name}: {e.strerror or e}") from e
     return target
+
+
+def create_folder(parent: Path, name: str) -> Path:
+    """Create a new, empty folder `name` inside `parent` (F-10, F-11).
+
+    Returns its path. Raises FolderError if the name is rejected, already exists
+    (ignoring upper/lower case on macOS drives), or the folder can't be created.
+    """
+    clean = _clean_name(name, FolderError, "folder")
+    target = parent / clean
+    if os.path.lexists(target):
+        raise FolderError(f"“{clean}” already exists here.")
+    try:
+        target.mkdir()  # fails instead of reusing a folder that appeared meanwhile
+    except FileExistsError as e:
+        raise FolderError(f"“{clean}” already exists here.") from e
+    except OSError as e:
+        raise FolderError(f"Couldn't create “{clean}”: {e.strerror or e}") from e
+    return target
+
+
+def _clean_name(name: str, error: type[Exception], kind: str) -> str:
+    """Shared name rules for renaming a video and naming a new folder (R-6, F-11)."""
+    clean = name.strip()
+    if not clean:
+        raise error("The name can't be empty.")
+    if any(ch in clean for ch in FORBIDDEN_NAME_CHARS):
+        raise error("The name can't contain / or :")
+    if clean.startswith("."):
+        raise error(f"The name can't start with a dot (the {kind} would be hidden).")
+    return clean
 
 
 def format_size(size: int) -> str:

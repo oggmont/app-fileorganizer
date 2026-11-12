@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QLabel, QPushButton, QSizePolicy
+from PySide6.QtWidgets import QLabel, QLineEdit, QPushButton, QSizePolicy, QWidget
 
 
 def make_button(text: str, icon: QIcon | None = None, small: bool = False, name: str | None = None) -> QPushButton:
@@ -48,3 +48,22 @@ class ElidedLabel(QLabel):
 
     def _refresh(self) -> None:
         self.setText(self.fontMetrics().elidedText(self._full_text, self._mode, max(0, self.width())))
+
+
+class EditField(QLineEdit):
+    """A text field where Esc asks to cancel the edit, used by Rename (R-5) and New folder (F-12)."""
+
+    cancel_requested = Signal()
+
+    def keyPressEvent(self, event) -> None:
+        if event.key() == Qt.Key.Key_Escape and not self.isReadOnly():
+            self.cancel_requested.emit()
+            return
+        super().keyPressEvent(event)
+
+
+def set_dynamic_property(widget: QWidget, name: str, value) -> None:
+    """Set a dynamic property and re-apply the style sheet rules that depend on it."""
+    widget.setProperty(name, value)
+    widget.style().unpolish(widget)
+    widget.style().polish(widget)

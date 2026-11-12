@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..theme import CURSOR, HOVER, MOVING, SELECTED, SEPARATOR, TEXT
-from .common import ElidedLabel, make_button
+from .common import EditField, ElidedLabel, make_button
 
 ROW_HEIGHT = 35
 SELECTED_HINT = "selected · Enter / click to move"
@@ -148,9 +148,13 @@ class FolderList(QListWidget):
 class FolderPanel(QWidget):
     change_dest_clicked = Signal()
     folder_clicked = Signal(int)
+    new_folder_clicked = Signal()
+    create_requested = Signal(str)
+    new_folder_mode_changed = Signal(bool)
 
     def __init__(self):
         super().__init__()
+        self._creating = False
         self.setObjectName("rightPanel")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
@@ -162,6 +166,12 @@ class FolderPanel(QWidget):
         )
         self.change_button.setToolTip("Change destination folder")
         self.change_button.clicked.connect(self.change_dest_clicked)
+        self.new_folder_button = make_button(
+            "New folder", self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder), small=True
+        )
+        self.new_folder_button.setToolTip("Create a folder in this list (⌘⇧N)")
+        self.new_folder_button.setEnabled(False)
+        self.new_folder_button.clicked.connect(self.new_folder_clicked)
 
         header = QWidget()
         header.setObjectName("folderHeader")
@@ -171,7 +181,32 @@ class FolderPanel(QWidget):
         header_layout.setSpacing(10)
         header_layout.addWidget(title)
         header_layout.addWidget(self._path_label, 1)
+        header_layout.addWidget(self.new_folder_button)
         header_layout.addWidget(self.change_button)
+
+        # New folder row (F-9): hidden until New folder is pressed.
+        caption = QLabel("New folder")
+        caption.setObjectName("mutedLabel")
+        self.new_folder_field = EditField()
+        self.new_folder_field.setPlaceholderText("Folder name")
+        self.new_folder_field.setProperty("editing", True)  # blue border, like the rename field while editing
+        self.new_folder_field.returnPressed.connect(self._submit_new_folder)
+        self.new_folder_field.cancel_requested.connect(self.cancel_new_folder)
+        self.create_button = make_button("Create", small=True, name="okButton")
+        self.create_button.clicked.connect(self._submit_new_folder)
+        cancel_button = make_button("Cancel", small=True)
+        cancel_button.clicked.connect(self.cancel_new_folder)
+        self._new_folder_row = QWidget()
+        self._new_folder_row.setObjectName("newFolderRow")
+        self._new_folder_row.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        row_layout = QHBoxLayout(self._new_folder_row)
+        row_layout.setContentsMargins(14, 8, 14, 8)
+        row_layout.setSpacing(8)
+        row_layout.addWidget(caption)
+        row_layout.addWidget(self.new_folder_field, 1)
+        row_layout.addWidget(self.create_button)
+        row_layout.addWidget(cancel_button)
+        self._new_folder_row.hide()
 
         self.list = FolderList()
         self.list.folder_clicked.connect(self.folder_clicked)
@@ -185,7 +220,7 @@ class FolderPanel(QWidget):
         hint_items = [
             (["←", "→"], "video"), (["↑", "↓"], "folder"), (["Enter"], "select"),
             (["Enter"], "again:&nbsp;move"), (["⌘↵"], "open&nbsp;folder"), (["⌘↑"], "parent"),
-            (["Esc"], "clear"), (["⌘Z"], "undo"), (["⌘⌫"], "delete"),
+            (["⌘⇧N"], "new&nbsp;folder"), (["Esc"], "clear"), (["⌘Z"], "undo"), (["⌘⌫"], "delete"),
         ]
         # Inside an item everything is joined with &nbsp;, so lines only wrap between items.
         hints = QLabel(" &nbsp; ".join("".join(_key(k) for k in keys) + label for keys, label in hint_items))
@@ -198,10 +233,40 @@ class FolderPanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         layout.addWidget(header)
+        layout.addWidget(self._new_folder_row)
         layout.addWidget(self._empty_label)
         layout.addWidget(self.list, 1)
         layout.addWidget(hints)
         self.set_root(None)
+
+    # -- new folder (F-8..F-14) --------------------------------------------------
+    @property
+    def creating(self) -> bool:
+        return self._creating
+
+    def start_new_folder(self) -> None:
+        if self._creating:
+            self.new_folder_field.setFocus(Qt.FocusReason.OtherFocusReason)
+            return
+        self._creating = True
+        self.new_folder_field.clear()
+        self._new_folder_row.show()
+        self.new_folder_field.setFocus(Qt.FocusReason.OtherFocusReason)
+        self.new_folder_mode_changed.emit(True)
+
+    def cancel_new_folder(self) -> None:
+        """Hide the row without creating anything (F-12). Also used after a successful create."""
+        if not self._creating:
+            return
+        self._creating = False
+        self.new_folder_field.clearFocus()
+        self.new_folder_field.clear()
+        self._new_folder_row.hide()
+        self.new_folder_mode_changed.emit(False)
+
+    def _submit_new_folder(self) -> None:
+        if self._creating:
+            self.create_requested.emit(self.new_folder_field.text())
 
     # -- location -------------------------------------------------------------
     def set_root(self, path: Path | None) -> None:

@@ -45,6 +45,13 @@ left, click a destination folder on the right, and the video is moved there.
 | F-5 | If the source folder is one of the listed folders, it is not shown as a destination. |
 | F-6 | The list shows two different states. The **keyboard cursor** (moved with ↑/↓) is an outline around the row. The **selected** folder (after a first click or first Enter) is a filled highlight. |
 | F-7 | Besides the **Change** button, the folder list can be browsed from the keyboard: **⌘↵** opens a folder, **⌘↑** goes to the parent (K-12, K-13). |
+| F-8 | A small **New folder** button sits in the header of the right section, next to **Change** (also **⌘⇧N**, as in Finder). It's disabled until a destination folder is chosen, and while a move, undo or delete is running. |
+| F-9 | Pressing it shows a row under the header, with no pop-up: an empty, active name field (placeholder *"Folder name"*), a **Create** button and a **Cancel** button. |
+| F-10 | **Enter** or **Create** makes an empty folder with that name inside the destination folder, i.e. next to the folders in the list. |
+| F-11 | The name follows the same rules as Rename (R-6). It's rejected when it's empty, contains `/` or `:`, starts with `.`, or matches a folder or file that already exists there (ignoring upper/lower case). The error shows in the status bar and the row stays open to fix the name. An existing folder is never reused or merged. |
+| F-12 | **Esc**, **Cancel**, a click on a folder in the list, starting a rename, or changing location closes the row without creating anything. |
+| F-13 | After it's created, the row closes and the list reloads with the cursor on the new folder. The status bar shows *"✓ Created folder “<name>”"* for 5 seconds. As when moving the cursor (K-6), the folder selection is cleared, so the usual **Enter, Enter** then sends the video into the new folder. |
+| F-14 | For now the app only creates and names folders: it can't rename or delete them. Creating a folder isn't written to the move log, and Undo doesn't remove it. |
 
 ## 4. Move flow
 
@@ -145,6 +152,7 @@ pick a folder, then **Enter, Enter** to move.
 | **Esc** | Cancel a pending delete; otherwise clear the folder selection, or cancel a rename in progress. |
 | **⌘↵** | Open the folder under the cursor: its subfolders are listed and it becomes the destination folder (K-12). |
 | **⌘↑** | Go to the parent of the destination folder (K-13). |
+| **⌘⇧N** | New folder in the list on the right (F-8). |
 | **⌘Z** | Undo the last move or delete (U-2). |
 | **⌘⌫** | Delete: the first press asks, the second moves the video to the Trash (D-2). |
 
@@ -158,7 +166,7 @@ pick a folder, then **Enter, Enter** to move.
 | K-6 | Moving the cursor away from the selected folder clears the selection (as in M-4). The next **Enter** selects the folder under the cursor. |
 | K-7 | **Enter** follows the same rules as clicks (M-1 to M-3). There is no time limit between the two presses. |
 | K-8 | After a move, the cursor and the selection both stay on the same folder. A single **Enter** sends the next video there too (M-12a). |
-| K-9 | While the rename field is being edited, arrows, Enter, Esc, ⌘Z and ⌘⌫ belong to the text field (Enter = OK, Esc = cancel, ⌘Z undoes typing, ⌘⌫ deletes text). They don't control videos, folders or files. |
+| K-9 | While the rename field or the new-folder field is being typed in, arrows, Enter, Esc, ⌘Z and ⌘⌫ belong to the text field (Enter = OK, Esc = cancel, ⌘Z undoes typing, ⌘⌫ deletes text). They don't control videos, folders or files. |
 | K-10 | Keys pressed while a move, undo or delete is in progress are ignored (as in M-14). |
 | K-11 | Holding down a key repeats only **↑ / ↓**. Holding **Enter** doesn't move a stream of videos, and holding **← / →** doesn't skip through dozens of videos. |
 | K-12 | **⌘↵** (⌘ + Return) opens the folder under the cursor. Its subfolders replace the list, and it becomes the destination folder: shown in the header and remembered (N-4). The cursor starts at the top. It doesn't select or move anything. |

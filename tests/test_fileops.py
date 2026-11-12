@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from fileorganizer.fileops import (
+    FolderError,
     MoveError,
     RenameError,
     TrashError,
@@ -17,6 +18,7 @@ from fileorganizer.fileops import (
     rename_video,
     trash_verified,
     unique_destination,
+    create_folder,
 )
 
 
@@ -206,3 +208,26 @@ def test_app_icon_draws(qapp):
     image = draw_icon(64)
     assert image.width() == 64 and not image.isNull()
     assert image.pixelColor(32, 32).alpha() == 255 and image.pixelColor(0, 0).alpha() == 0
+
+
+# -- create_folder (F-10, F-11) ------------------------------------------------------------
+def test_create_folder(tmp_path):
+    folder = create_folder(tmp_path, "  Beach 2026 ")
+    assert folder == tmp_path / "Beach 2026" and folder.is_dir()
+
+
+@pytest.mark.parametrize(
+    "name, message",
+    [("", "empty"), ("  ", "empty"), ("a/b", "/"), ("a:b", ":"), (".hidden", "dot"), ("beach", "already exists")],
+)
+def test_create_folder_rejects_bad_names(tmp_path, name, message):
+    (tmp_path / "Beach").mkdir()
+    with pytest.raises(FolderError, match=message):
+        create_folder(tmp_path, name)
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["Beach"]
+
+
+def test_create_folder_next_to_a_file_with_that_name(tmp_path):
+    write(tmp_path / "Notes", 1)
+    with pytest.raises(FolderError, match="already exists"):
+        create_folder(tmp_path, "Notes")

@@ -11,7 +11,6 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
     QSlider,
     QStackedWidget,
     QStyle,
@@ -21,7 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..fileops import Video, format_size
-from .common import ElidedLabel, make_button
+from .common import EditField, ElidedLabel, make_button, set_dynamic_property
 
 SEEK_STEP_MS = 10_000  # P-7
 
@@ -59,18 +58,6 @@ class SeekSlider(QSlider):
                 self.setValue(value)
                 self.seek_requested.emit(value)
         super().mousePressEvent(event)
-
-
-class RenameEdit(QLineEdit):
-    """The rename field. Read-only and unfocusable until Change is pressed (R-3)."""
-
-    cancel_requested = Signal()
-
-    def keyPressEvent(self, event) -> None:
-        if event.key() == Qt.Key.Key_Escape and not self.isReadOnly():
-            self.cancel_requested.emit()  # R-5
-            return
-        super().keyPressEvent(event)
 
 
 class PlayerPanel(QWidget):
@@ -124,7 +111,7 @@ class PlayerPanel(QWidget):
         name_caption = QLabel("Name")
         name_caption.setObjectName("mutedLabel")
         name_caption.setFixedWidth(44)
-        self.rename_field = RenameEdit()
+        self.rename_field = EditField()  # read-only and unfocusable until Change is pressed (R-3)
         self.rename_field.setReadOnly(True)
         self.rename_field.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.rename_field.returnPressed.connect(self._submit_rename)
@@ -318,7 +305,7 @@ class PlayerPanel(QWidget):
     def set_delete_pending(self, pending: bool) -> None:
         """D-2: the Delete button turns red and asks for the second press."""
         self.delete_button.setText("Confirm delete" if pending else "Delete")
-        _set_property(self.delete_button, "danger", pending)
+        set_dynamic_property(self.delete_button, "danger", pending)
 
     # -- rename (section 6) ----------------------------------------------------------------
     @property
@@ -331,7 +318,7 @@ class PlayerPanel(QWidget):
         self._editing = True
         self.rename_field.setReadOnly(False)
         self.rename_field.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        _set_property(self.rename_field, "editing", True)
+        set_dynamic_property(self.rename_field, "editing", True)
         self.rename_ok_button.setEnabled(True)
         self.rename_change_button.setEnabled(False)
         self.rename_field.setFocus(Qt.FocusReason.OtherFocusReason)
@@ -355,7 +342,7 @@ class PlayerPanel(QWidget):
         self.rename_field.setReadOnly(True)
         self.rename_field.clearFocus()
         self.rename_field.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        _set_property(self.rename_field, "editing", False)
+        set_dynamic_property(self.rename_field, "editing", False)
         self.rename_ok_button.setEnabled(False)
         self.rename_change_button.setEnabled(bool(self._current_name))
         self.rename_mode_changed.emit(False)
@@ -412,10 +399,3 @@ def _bar(name: str, margins: tuple[int, int, int, int]) -> QWidget:
     layout.setContentsMargins(*margins)
     layout.setSpacing(10)
     return bar
-
-
-def _set_property(widget: QWidget, name: str, value) -> None:
-    """Set a dynamic property and re-apply the style sheet rules that depend on it."""
-    widget.setProperty(name, value)
-    widget.style().unpolish(widget)
-    widget.style().polish(widget)

@@ -17,10 +17,12 @@ from PySide6.QtWidgets import QFileDialog, QMainWindow, QSplitter, QVBoxLayout, 
 
 from .fileops import (
     MoveError,
+    FolderError,
     RenameError,
     TrashError,
     TrashFunction,
     Video,
+    create_folder,
     list_folders,
     list_videos,
     move_verified,
@@ -146,6 +148,9 @@ class MainWindow(QMainWindow):
         self.player_panel.skip_clicked.connect(self.next_video)
         self.player_panel.rename_submitted.connect(self.rename_current)
         self.player_panel.rename_mode_changed.connect(self._on_rename_mode)
+        self.folder_panel.new_folder_clicked.connect(self.start_new_folder)
+        self.folder_panel.create_requested.connect(self.create_new_folder)
+        self.folder_panel.new_folder_mode_changed.connect(self._on_new_folder_mode)
         self.player_panel.playback_error.connect(lambda text: self.status_line.show_message(text, "error"))
         self.folder_panel.change_dest_clicked.connect(self.choose_dest)
         self.folder_panel.folder_clicked.connect(self._on_folder_clicked)
@@ -175,6 +180,7 @@ class MainWindow(QMainWindow):
         # ⌘↑ goes to the parent folder.
         self._shortcut(["Ctrl+Return", "Ctrl+Enter"], self.open_cursor_folder)
         self._shortcut(["Ctrl+Up"], self.open_parent_folder)
+        self._shortcut(["Ctrl+Shift+N"], self.start_new_folder)  # F-8, same key as in Finder
 
     def _shortcut(self, keys: list[str], slot, auto_repeat: bool = False) -> None:
         for key in keys:
@@ -187,15 +193,30 @@ class MainWindow(QMainWindow):
             self._shortcuts.append(shortcut)
 
     def _on_rename_mode(self, editing: bool) -> None:
-        # K-9: while the rename field is being edited, keys belong to the text field
-        # (there, ⌘Z undoes typing and ⌘⌫ deletes text).
+        if editing:
+            self.folder_panel.cancel_new_folder()  # only one text field at a time
+        self._on_text_mode(editing, "Type the new name. Enter or OK renames, Esc cancels.")
+
+    def _on_new_folder_mode(self, creating: bool) -> None:
+        if creating:
+            self.player_panel.cancel_rename()
+        self._on_text_mode(creating, "Type the folder name. Enter or Create makes it, Esc cancels.")
+
+    def _on_text_mode(self, editing: bool, prompt: str) -> None:
+        # K-9: while the rename or new-folder field is being typed in, keys belong to the
+        # text field (there, ⌘Z undoes typing and ⌘⌫ deletes text).
+        typing = self.player_panel.editing or self.folder_panel.creating
         for shortcut in self._shortcuts:
-            shortcut.setEnabled(not editing)
+            shortcut.setEnabled(not typing)
         if editing:
             self._cancel_delete()
-            self.status_line.show_message("Type the new name. Enter or OK renames, Esc cancels.", "prompt")
-        else:
+            self.status_line.show_message(prompt, "prompt")
+        elif not typing:
             self.status_line.refresh()
+
+    def _cancel_text_edits(self) -> None:
+        self.player_panel.cancel_rename()
+        self.folder_panel.cancel_new_folder()
 
     def press_escape(self) -> None:
         """Esc cancels a pending delete first, otherwise clears the folder selection."""
@@ -230,6 +251,7 @@ class MainWindow(QMainWindow):
         else:
             panel.undo_button.setToolTip("Nothing to undo (⌘Z)")
         panel.delete_button.setEnabled(self.current_video is not None and not self.busy)
+        self.folder_panel.new_folder_button.setEnabled(self.dest is not None and not self.busy)  # F-8
 
     # ======================================================================
     # Locations (P-1, F-1, M-5, U-6, N-4)
@@ -251,7 +273,7 @@ class MainWindow(QMainWindow):
             self.set_dest(Path(path))
 
     def set_source(self, path: Path, save: bool = True) -> None:
-        self.player_panel.cancel_rename()  # R-9
+        self._cancel_text_edits()  # R-9, F-12
         self._cancel_delete()  # D-5
         self.folder_panel.clear_armed()  # M-5
         self._undo.clear()  # U-6: Undo always brings videos back into the current source folder
@@ -268,13 +290,14 @@ class MainWindow(QMainWindow):
             self.status_line.show_idle()
 
     def set_dest(self, path: Path, save: bool = True, cursor_on: str | None = None) -> None:
-        self.player_panel.cancel_rename()  # R-9
+        self._cancel_text_edits()  # R-9, F-12
         self._cancel_delete()
         self.folder_panel.clear_armed()  # M-5
         self.dest = path
         if save:
             self.settings.setValue("dest", str(path))
         error = self._refresh_folders(cursor_on)
+        self._update_action_buttons()  # New folder needs a destination (F-8)
         if error:
             self.status_line.show_message(error, "error")
         else:
@@ -314,6 +337,33 @@ class MainWindow(QMainWindow):
             self.status_line.show_message("This is the top folder.", "muted", MESSAGE_MS)
             return
         self.set_dest(parent, cursor_on=self.dest.name)
+
+    # ======================================================================
+    # New folder (F-8..F-14)
+    # ======================================================================
+    def start_new_folder(self) -> None:
+        """New folder button or ⌘⇧N: show the name row in the right panel."""
+        if self.busy or self.dest is None:
+            return
+        self.folder_panel.start_new_folder()
+
+    def create_new_folder(self, name: str) -> None:
+        if self.busy or self.dest is None:
+            return
+        try:
+            folder = create_folder(self.dest, name)
+        except FolderError as e:
+            self.status_line.show_message(f"✗ {e}", "error")  # F-11: stay in the row to fix the name
+            return
+        self.folder_panel.cancel_new_folder()
+        # F-13: the list is reloaded with the cursor on the new folder. Like moving the cursor
+        # with ↑/↓, this clears the selection (K-6); nothing is moved.
+        self.folder_panel.clear_armed()
+        error = self._refresh_folders(cursor_on=folder.name)
+        if error:
+            self.status_line.show_message(error, "error")
+        else:
+            self.status_line.show_message(f"✓ Created folder “{folder.name}”", "ok", MESSAGE_MS)
 
     def _restore_settings(self) -> None:
         splitter_state = self.settings.value("splitter")
@@ -376,7 +426,7 @@ class MainWindow(QMainWindow):
         """→ and Skip: the next smaller video. The folder selection stays (M-12a, K-4)."""
         if self.busy:
             return
-        self.player_panel.cancel_rename()  # R-9
+        self._cancel_text_edits()  # R-9, F-12
         self._cancel_delete()  # D-5
         if self.index >= len(self.videos) - 1:
             if self.videos:
@@ -390,7 +440,7 @@ class MainWindow(QMainWindow):
         """←: the previous (next bigger) video."""
         if self.busy:
             return
-        self.player_panel.cancel_rename()
+        self._cancel_text_edits()
         self._cancel_delete()
         if self.index <= 0 or not self.videos:
             if self.videos:
@@ -425,10 +475,11 @@ class MainWindow(QMainWindow):
         self.status_line.show_idle()
 
     def _on_folder_clicked(self, row: int) -> None:
-        if self.player_panel.editing:
-            # R-9: the click only cancels the rename, so a half-typed name never moves a file.
-            self.player_panel.cancel_rename()
-            self.status_line.show_message("Rename cancelled.", "muted", MESSAGE_MS)
+        if self.player_panel.editing or self.folder_panel.creating:
+            # R-9, F-12: the click only cancels the typing, so a half-typed name never moves a file.
+            what = "Rename" if self.player_panel.editing else "New folder"
+            self._cancel_text_edits()
+            self.status_line.show_message(f"{what} cancelled.", "muted", MESSAGE_MS)
             return
         self._activate_folder(row)
 
@@ -543,7 +594,7 @@ class MainWindow(QMainWindow):
         """Delete button or ⌘⌫. The first press asks, the second moves the video to the Trash (D-2, D-3)."""
         if self.busy:
             return
-        self.player_panel.cancel_rename()
+        self._cancel_text_edits()
         video = self.current_video
         if video is None:
             self.status_line.show_message("There's no video to delete.", "muted", MESSAGE_MS)
@@ -595,7 +646,7 @@ class MainWindow(QMainWindow):
         """Undo button or ⌘Z: bring back the last moved or deleted video and play it (U-2, U-3)."""
         if self.busy or self._recently_busy():
             return
-        self.player_panel.cancel_rename()
+        self._cancel_text_edits()
         self._cancel_delete()
         if not self._undo or self.source is None:
             self.status_line.show_message("Nothing to undo.", "muted", MESSAGE_MS)
