@@ -1,0 +1,14 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# macOS
+.DS_Store
+
+# App data: the move log holds full paths of your files
+moves_log.txt
+
+# Private notes: the prompts used to build this project
+[Pp]rompt.md
